@@ -5,6 +5,9 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# Timeout for Strava API requests (seconds)
+API_TIMEOUT = 30.0
+
 
 class StravaService:
     def __init__(self, access_token: str | None = None):
@@ -32,7 +35,7 @@ class StravaService:
     @staticmethod
     async def exchange_code(code: str) -> dict[str, Any]:
         """Exchange authorization code for access token."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.post(
                 settings.strava_token_url,
                 data={
@@ -48,7 +51,7 @@ class StravaService:
     @staticmethod
     async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
         """Refresh the access token using the refresh token."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.post(
                 settings.strava_token_url,
                 data={
@@ -63,7 +66,7 @@ class StravaService:
 
     async def get_athlete(self) -> dict[str, Any]:
         """Get the authenticated athlete's profile."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.get(
                 f"{self.base_url}/athlete",
                 headers=self._get_headers(),
@@ -86,7 +89,7 @@ class StravaService:
         if after:
             params["after"] = int(after.timestamp())
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.get(
                 f"{self.base_url}/athlete/activities",
                 headers=self._get_headers(),
@@ -99,7 +102,7 @@ class StravaService:
 
     async def get_activity(self, activity_id: int) -> dict[str, Any]:
         """Get a specific activity by ID."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.get(
                 f"{self.base_url}/activities/{activity_id}",
                 headers=self._get_headers(),
@@ -116,7 +119,7 @@ class StravaService:
             data["gear_id"] = gear_id
         data.update(kwargs)
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.put(
                 f"{self.base_url}/activities/{activity_id}",
                 headers=self._get_headers(),
@@ -127,7 +130,7 @@ class StravaService:
 
     async def get_gear(self, gear_id: str) -> dict[str, Any]:
         """Get gear details by ID."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
             response = await client.get(
                 f"{self.base_url}/gear/{gear_id}",
                 headers=self._get_headers(),
