@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Skill(example-skills:webapp-testing)",
+      "Bash(python:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(uvicorn app.main:app:*)",
+      "Bash(pip install:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(pip show:*)",
+      "Bash(python3:*)",
+      "Bash(xargs kill -9)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
