@@ -55,17 +55,22 @@ async def get_activities(
     trainer: bool | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
+    sort_by: str = Query("start_date", pattern="^(start_date|name|distance|moving_time|activity_type)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     limit: int = Query(50, le=200),
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Get activities with optional filters."""
-    query = (
-        select(Activity)
-        .where(Activity.user_id == user.id)
-        .order_by(Activity.start_date.desc())
-    )
+    """Get activities with optional filters, sorting, and pagination."""
+    query = select(Activity).where(Activity.user_id == user.id)
+
+    # Apply sorting
+    sort_column = getattr(Activity, sort_by, Activity.start_date)
+    if sort_order == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
 
     # Apply filters
     if search:

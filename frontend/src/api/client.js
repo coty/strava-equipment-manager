@@ -42,8 +42,10 @@ export const activitiesApi = {
     }
     if (filters.dateFrom) params.append('date_from', filters.dateFrom)
     if (filters.dateTo) params.append('date_to', filters.dateTo)
+    if (filters.sortBy) params.append('sort_by', filters.sortBy)
+    if (filters.sortOrder) params.append('sort_order', filters.sortOrder)
     if (filters.limit) params.append('limit', filters.limit)
-    if (filters.offset) params.append('offset', filters.offset)
+    if (filters.offset !== undefined) params.append('offset', filters.offset)
 
     const response = await client.get(`/activities?${params.toString()}`)
     return response.data

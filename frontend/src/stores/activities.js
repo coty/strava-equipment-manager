@@ -14,6 +14,17 @@ export const useActivitiesStore = defineStore('activities', () => {
   const backfillStatus = ref(null)
   const isBackfilling = ref(false)
 
+  // Pagination and sorting state
+  const pagination = ref({
+    page: 1,
+    pageSize: 50,
+    totalItems: 0
+  })
+  const sorting = ref({
+    sortBy: 'start_date',
+    sortOrder: 'desc'
+  })
+
   // Initialize with mock data if in mock mode
   if (USE_MOCK_DATA) {
     activities.value = [...mockActivities]
@@ -49,6 +60,7 @@ export const useActivitiesStore = defineStore('activities', () => {
         }
         return true
       })
+      pagination.value.totalItems = activities.value.length
       return
     }
 
@@ -56,7 +68,15 @@ export const useActivitiesStore = defineStore('activities', () => {
     error.value = null
 
     try {
-      const data = await activitiesApi.getAll(filters)
+      // Include pagination and sorting in the request
+      const offset = (pagination.value.page - 1) * pagination.value.pageSize
+      const data = await activitiesApi.getAll({
+        ...filters,
+        sortBy: sorting.value.sortBy,
+        sortOrder: sorting.value.sortOrder,
+        limit: pagination.value.pageSize,
+        offset
+      })
       activities.value = data
     } catch (e) {
       console.error('Failed to fetch activities:', e)
@@ -64,6 +84,26 @@ export const useActivitiesStore = defineStore('activities', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  function setPage(page) {
+    pagination.value.page = page
+  }
+
+  function setPageSize(size) {
+    pagination.value.pageSize = size
+    pagination.value.page = 1 // Reset to first page when changing page size
+  }
+
+  function setSorting(sortBy, sortOrder = 'desc') {
+    sorting.value.sortBy = sortBy
+    sorting.value.sortOrder = sortOrder
+    pagination.value.page = 1 // Reset to first page when changing sort
+  }
+
+  function toggleSortOrder() {
+    sorting.value.sortOrder = sorting.value.sortOrder === 'desc' ? 'asc' : 'desc'
+    pagination.value.page = 1
   }
 
   async function syncFromStrava(days = 30) {
@@ -191,6 +231,12 @@ export const useActivitiesStore = defineStore('activities', () => {
     }
   }
 
+  // Computed for total pages
+  const totalPages = computed(() => {
+    const total = totalStats.value.total_activities || 0
+    return Math.ceil(total / pagination.value.pageSize)
+  })
+
   return {
     activities,
     totalStats,
@@ -199,6 +245,9 @@ export const useActivitiesStore = defineStore('activities', () => {
     error,
     backfillStatus,
     isBackfilling,
+    pagination,
+    sorting,
+    totalPages,
     fetchActivities,
     fetchStats,
     syncFromStrava,
@@ -206,6 +255,10 @@ export const useActivitiesStore = defineStore('activities', () => {
     bulkUpdateEquipment,
     startBackfill,
     checkBackfillStatus,
+    setPage,
+    setPageSize,
+    setSorting,
+    toggleSortOrder,
     // Re-export utilities
     formatDistance,
     formatDuration,

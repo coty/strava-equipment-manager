@@ -46,6 +46,8 @@ let filterTimeout = null
 watch(filters, () => {
   if (filterTimeout) clearTimeout(filterTimeout)
   filterTimeout = setTimeout(() => {
+    // Reset to page 1 when filters change
+    activitiesStore.setPage(1)
     activitiesStore.fetchActivities({
       search: filters.value.search,
       activityType: filters.value.activityType,
@@ -139,6 +141,67 @@ async function startBackfill() {
     console.error('Failed to start backfill:', e)
   }
 }
+
+// Sorting
+function handleSort(column) {
+  if (activitiesStore.sorting.sortBy === column) {
+    activitiesStore.toggleSortOrder()
+  } else {
+    activitiesStore.setSorting(column, 'desc')
+  }
+  activitiesStore.fetchActivities({
+    search: filters.value.search,
+    activityType: filters.value.activityType,
+    equipmentId: filters.value.equipment,
+    trainer: filters.value.trainer,
+    dateFrom: filters.value.dateFrom,
+    dateTo: filters.value.dateTo
+  })
+}
+
+function getSortIcon(column) {
+  if (activitiesStore.sorting.sortBy !== column) return ''
+  return activitiesStore.sorting.sortOrder === 'desc' ? '↓' : '↑'
+}
+
+// Pagination
+async function goToPage(page) {
+  if (page < 1 || page > activitiesStore.totalPages) return
+  activitiesStore.setPage(page)
+  await activitiesStore.fetchActivities({
+    search: filters.value.search,
+    activityType: filters.value.activityType,
+    equipmentId: filters.value.equipment,
+    trainer: filters.value.trainer,
+    dateFrom: filters.value.dateFrom,
+    dateTo: filters.value.dateTo
+  })
+}
+
+const paginationRange = computed(() => {
+  const current = activitiesStore.pagination.page
+  const total = activitiesStore.totalPages
+  const delta = 2
+  const range = []
+
+  for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+    range.push(i)
+  }
+
+  // Add first page and ellipsis
+  if (range[0] > 1) {
+    if (range[0] > 2) range.unshift('...')
+    range.unshift(1)
+  }
+
+  // Add last page and ellipsis
+  if (range[range.length - 1] < total) {
+    if (range[range.length - 1] < total - 1) range.push('...')
+    range.push(total)
+  }
+
+  return range
+})
 </script>
 
 <template>
@@ -329,11 +392,36 @@ async function startBackfill() {
                 class="rounded border-gray-300 text-strava-orange focus:ring-strava-orange"
               />
             </th>
-            <th class="text-left p-4 text-sm font-medium text-gray-600">Activity</th>
-            <th class="text-left p-4 text-sm font-medium text-gray-600">Type</th>
-            <th class="text-left p-4 text-sm font-medium text-gray-600">Date</th>
-            <th class="text-right p-4 text-sm font-medium text-gray-600">Distance</th>
-            <th class="text-right p-4 text-sm font-medium text-gray-600">Duration</th>
+            <th
+              @click="handleSort('name')"
+              class="text-left p-4 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+            >
+              Activity {{ getSortIcon('name') }}
+            </th>
+            <th
+              @click="handleSort('activity_type')"
+              class="text-left p-4 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+            >
+              Type {{ getSortIcon('activity_type') }}
+            </th>
+            <th
+              @click="handleSort('start_date')"
+              class="text-left p-4 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+            >
+              Date {{ getSortIcon('start_date') }}
+            </th>
+            <th
+              @click="handleSort('distance')"
+              class="text-right p-4 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+            >
+              Distance {{ getSortIcon('distance') }}
+            </th>
+            <th
+              @click="handleSort('moving_time')"
+              class="text-right p-4 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+            >
+              Duration {{ getSortIcon('moving_time') }}
+            </th>
             <th class="text-left p-4 text-sm font-medium text-gray-600">Equipment</th>
           </tr>
         </thead>
@@ -409,6 +497,44 @@ async function startBackfill() {
         <button @click="clearFilters" class="mt-2 text-strava-orange hover:underline">
           Clear filters
         </button>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="activitiesStore.totalPages > 1" class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+        <div class="text-sm text-gray-600">
+          Page {{ activitiesStore.pagination.page }} of {{ activitiesStore.totalPages }}
+        </div>
+        <div class="flex items-center gap-1">
+          <button
+            @click="goToPage(activitiesStore.pagination.page - 1)"
+            :disabled="activitiesStore.pagination.page <= 1"
+            class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <template v-for="pageNum in paginationRange" :key="pageNum">
+            <span v-if="pageNum === '...'" class="px-2 text-gray-500">...</span>
+            <button
+              v-else
+              @click="goToPage(pageNum)"
+              :class="[
+                'px-3 py-1 text-sm rounded border',
+                pageNum === activitiesStore.pagination.page
+                  ? 'bg-strava-orange text-white border-strava-orange'
+                  : 'border-gray-300 hover:bg-gray-50'
+              ]"
+            >
+              {{ pageNum }}
+            </button>
+          </template>
+          <button
+            @click="goToPage(activitiesStore.pagination.page + 1)"
+            :disabled="activitiesStore.pagination.page >= activitiesStore.totalPages"
+            class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
 
