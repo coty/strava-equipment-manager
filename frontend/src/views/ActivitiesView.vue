@@ -26,6 +26,7 @@ const activityTypes = ['Ride', 'VirtualRide', 'Run', 'GravelRide']
 onMounted(async () => {
   await Promise.all([
     activitiesStore.fetchActivities(),
+    activitiesStore.fetchStats(),
     equipmentStore.fetchEquipment(),
     activitiesStore.checkBackfillStatus()
   ])
@@ -146,7 +147,7 @@ async function startBackfill() {
     <div class="flex items-center justify-between mb-8">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Activities</h1>
-        <p class="text-gray-600">{{ filteredActivities.length }} activities</p>
+        <p class="text-gray-600">Showing {{ filteredActivities.length }} of {{ activitiesStore.totalStats.total_activities }} activities</p>
       </div>
       <div class="flex gap-2">
         <button

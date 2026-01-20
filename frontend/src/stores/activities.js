@@ -7,6 +7,7 @@ const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true'
 
 export const useActivitiesStore = defineStore('activities', () => {
   const activities = ref([])
+  const totalStats = ref({ total_activities: 0, total_distance: 0, total_time: 0 })
   const isLoading = ref(false)
   const isSyncing = ref(false)
   const error = ref(null)
@@ -174,14 +175,32 @@ export const useActivitiesStore = defineStore('activities', () => {
     }
   }
 
+  async function fetchStats() {
+    if (USE_MOCK_DATA) {
+      totalStats.value = { total_activities: mockActivities.length, total_distance: 0, total_time: 0 }
+      return totalStats.value
+    }
+
+    try {
+      const stats = await activitiesApi.getStats()
+      totalStats.value = stats
+      return stats
+    } catch (e) {
+      console.error('Failed to fetch stats:', e)
+      return null
+    }
+  }
+
   return {
     activities,
+    totalStats,
     isLoading,
     isSyncing,
     error,
     backfillStatus,
     isBackfilling,
     fetchActivities,
+    fetchStats,
     syncFromStrava,
     updateEquipment,
     bulkUpdateEquipment,

@@ -421,15 +421,29 @@ async def run_backfill(user_id: int, access_token: str, refresh_token: str):
             )
             equipment_map = {eq.strava_gear_id: eq for eq in eq_result.scalars().all()}
 
+            # Find oldest activity to continue from where we left off
+            oldest_result = await db.execute(
+                select(Activity.start_date)
+                .where(Activity.user_id == user_id)
+                .order_by(Activity.start_date.asc())
+                .limit(1)
+            )
+            oldest_date = oldest_result.scalar_one_or_none()
+
+            # Use before parameter to only fetch activities older than our oldest
+            before_date = oldest_date if oldest_date else None
+            if before_date:
+                backfill_status[user_id]["message"] = f"Fetching activities before {before_date.strftime('%Y-%m-%d')}"
+
             page = 1
             total_created = 0
             total_updated = 0
 
             while True:
                 try:
-                    # Fetch activities without date filter (all history)
+                    # Fetch activities older than our oldest stored activity
                     activities = await strava.get_athlete_activities(
-                        page=page, per_page=100  # Max per page
+                        before=before_date, page=page, per_page=100
                     )
                 except Exception as e:
                     error_msg = f"Page {page}: [{type(e).__name__}] {str(e)}"
